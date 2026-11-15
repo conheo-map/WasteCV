@@ -23,18 +23,13 @@ import threading
 import torch
 from src.detector import WasteDetector
 
-MODEL_PATH = BASE_DIR / "models" / "yolov8n_waste12.pt"
-if not MODEL_PATH.exists():
-    MODEL_PATH = BASE_DIR / "models" / "yolov8n.pt"
-
-
 def run_live():
     print("=" * 65)
     print("♻️  WASTECV — QUÉT RÁC THỜI GIAN THỰC ĐA LUỒNG (ZERO-LAG LIVE STREAM)")
     print("=" * 65)
     print("[*] Đang khởi động mô hình AI trên GPU...")
 
-    detector = WasteDetector(MODEL_PATH)
+    detector = WasteDetector(model_type="world")
     device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
     print(f"[✓] Động cơ AI đang chạy trên: {device_name}")
     print("[*] Đang kết nối Webcam (Camera 0 qua DirectShow)...")
