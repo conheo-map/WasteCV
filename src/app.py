@@ -330,20 +330,37 @@ def main():
                         def __init__(self):
                             self.detector = detector
                             self.conf = conf_thresh
+                            self.frame_count = 0
+                            self.cached_detections = []
 
                         def recv(self, frame):
                             img_bgr = frame.to_ndarray(format="bgr24")
+                            self.frame_count += 1
+
                             if self.detector is not None:
-                                annotated_bgr, _, _, _ = self.detector.detect_bgr(img_bgr, conf_threshold=self.conf)
+                                # Chạy suy luận YOLO mỗi 2 frame để đạt 30-60 FPS mượt mà
+                                if self.frame_count % 2 == 0 or len(self.cached_detections) == 0:
+                                    self.cached_detections, _ = self.detector.get_boxes(
+                                        img_bgr, conf_threshold=self.conf, imgsz=320
+                                    )
+                                annotated_bgr = self.detector.draw_boxes(img_bgr, self.cached_detections)
                             else:
                                 annotated_bgr = img_bgr
+
                             return av.VideoFrame.from_ndarray(annotated_bgr, format="bgr24")
 
                     webrtc_streamer(
                         key="waste-live-stream-continuous",
                         video_processor_factory=WasteVideoProcessor,
                         rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
-                        media_stream_constraints={"video": True, "audio": False}
+                        media_stream_constraints={
+                            "video": {
+                                "width": {"ideal": 640},
+                                "height": {"ideal": 480},
+                                "frameRate": {"ideal": 30}
+                            },
+                            "audio": False
+                        }
                     )
                 except Exception as ex:
                     st.warning(f"Lỗi khởi động Live Stream WebRTC: {ex}")

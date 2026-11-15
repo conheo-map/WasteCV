@@ -60,17 +60,78 @@ class WasteDetector:
     def __init__(self, model_path=MODEL_PATH):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = YOLO(str(model_path))
+        # Warmup GPU
+        if self.device == "cuda":
+            dummy = np.zeros((320, 320, 3), dtype=np.uint8)
+            self.model.predict(dummy, imgsz=320, device="cuda", verbose=False)
         print(f"[✓] Đã khởi tạo WasteDetector trên thiết bị: {self.device}")
 
-    def detect_bgr(self, bgr_frame, conf_threshold=0.25):
+    def get_boxes(self, bgr_frame, conf_threshold=0.25, imgsz=320):
+        """Trích xuất danh sách bounding boxes siêu tốc (dùng cho live loop)."""
+        results = self.model.predict(
+            source=bgr_frame,
+            conf=conf_threshold,
+            device=self.device,
+            imgsz=imgsz,
+            verbose=False
+        )
+        detections = []
+        has_hazard = False
+        if len(results) > 0 and len(results[0].boxes) > 0:
+            boxes = results[0].boxes
+            for i in range(len(boxes)):
+                cls_id = int(boxes.cls[i])
+                cls_name = results[0].names[cls_id]
+                conf = float(boxes.conf[i])
+                xyxy = boxes.xyxy[i].cpu().numpy().astype(int)
+                x1, y1, x2, y2 = xyxy
+
+                info = WASTE_CATEGORY_MAP.get(
+                    cls_name,
+                    {"stream": f"Vật thể ({cls_name})", "color": (149, 165, 166), "bin": "Thùng Rác Vô Cơ"}
+                )
+                stream = info["stream"]
+                color_rgb = info["color"]
+
+                if "Nguy Hại" in stream or "E-Waste" in stream:
+                    has_hazard = True
+
+                detections.append({
+                    "name": cls_name,
+                    "stream": stream,
+                    "bin": info["bin"],
+                    "confidence": conf,
+                    "box": (x1, y1, x2, y2),
+                    "color_bgr": (color_rgb[2], color_rgb[1], color_rgb[0])
+                })
+        return detections, has_hazard
+
+    def draw_boxes(self, bgr_frame, detections):
+        """Vẽ nhanh bounding boxes lên khung hình hiện tại."""
+        annotated_bgr = bgr_frame.copy()
+        for d in detections:
+            x1, y1, x2, y2 = d["box"]
+            color_bgr = d["color_bgr"]
+            stream = d["stream"]
+            conf = d["confidence"]
+
+            cv2.rectangle(annotated_bgr, (x1, y1), (x2, y2), color_bgr, 3)
+            label_text = f"{stream}: {conf*100:.0f}%"
+            (w, h), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+            cv2.rectangle(annotated_bgr, (x1, max(0, y1 - 25)), (x1 + w + 10, y1), color_bgr, -1)
+            cv2.putText(annotated_bgr, label_text, (x1 + 5, y1 - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+        return annotated_bgr
+
+    def detect_bgr(self, bgr_frame, conf_threshold=0.25, imgsz=320):
         """
         Nhận diện trực tiếp trên khung hình BGR (cho Live Stream WebRTC/OpenCV).
-        Trả về annotated_bgr, detections, summary, has_hazard.
+        Tối ưu hóa imgsz=320 để đạt tốc độ thời gian thực siêu mượt.
         """
         results = self.model.predict(
             source=bgr_frame,
             conf=conf_threshold,
             device=self.device,
+            imgsz=imgsz,
             verbose=False
         )
         annotated_bgr = bgr_frame.copy()
@@ -110,7 +171,8 @@ class WasteDetector:
                     "stream": stream,
                     "bin": info["bin"],
                     "confidence": conf,
-                    "box": (x1, y1, x2, y2)
+                    "box": (x1, y1, x2, y2),
+                    "color_bgr": color_bgr
                 })
 
                 cv2.rectangle(annotated_bgr, (x1, y1), (x2, y2), color_bgr, 3)

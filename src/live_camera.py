@@ -55,6 +55,9 @@ def run_live():
 
     prev_time = time.time()
     fps = 0
+    frame_count = 0
+    cached_detections = []
+    has_hazard = False
 
     while True:
         ret, frame = cap.read()
@@ -62,20 +65,25 @@ def run_live():
             print("[!] Mất tín hiệu khung hình từ Camera.")
             break
 
+        frame_count += 1
         # Tính toán FPS thời gian thực
         curr_time = time.time()
         fps = 0.9 * fps + 0.1 * (1.0 / max(0.001, curr_time - prev_time))
         prev_time = curr_time
 
-        # Suy luận YOLOv8
-        annotated_frame, detections, summary, has_hazard = detector.detect_bgr(frame, conf_threshold=0.25)
+        # Tối ưu hóa: Chạy suy luận YOLO mỗi 2 frame để giữ tốc độ 60 FPS mượt mà
+        if frame_count % 2 == 0 or len(cached_detections) == 0:
+            cached_detections, has_hazard = detector.get_boxes(frame, conf_threshold=0.25, imgsz=320)
+
+        # Vẽ bounding boxes lên khung hình
+        annotated_frame = detector.draw_boxes(frame, cached_detections)
 
         # Vẽ thanh trạng thái Header (HUD)
         h, w = annotated_frame.shape[:2]
         cv2.rectangle(annotated_frame, (0, 0), (w, 45), (20, 20, 20), -1)
 
         # Thông tin FPS và GPU
-        header_text = f"WasteCV Live | FPS: {fps:.1f} | GPU: {device_name} | Phat hien: {len(detections)}"
+        header_text = f"WasteCV Live | FPS: {fps:.1f} | GPU: {device_name} | Phat hien: {len(cached_detections)}"
         cv2.putText(annotated_frame, header_text, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2)
 
         # Nếu phát hiện Pin / Đồ điện tử -> Hiển thị cảnh báo đỏ nhấp nháy
