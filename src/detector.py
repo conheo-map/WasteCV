@@ -62,6 +62,65 @@ class WasteDetector:
         self.model = YOLO(str(model_path))
         print(f"[✓] Đã khởi tạo WasteDetector trên thiết bị: {self.device}")
 
+    def detect_bgr(self, bgr_frame, conf_threshold=0.25):
+        """
+        Nhận diện trực tiếp trên khung hình BGR (cho Live Stream WebRTC/OpenCV).
+        Trả về annotated_bgr, detections, summary, has_hazard.
+        """
+        results = self.model.predict(
+            source=bgr_frame,
+            conf=conf_threshold,
+            device=self.device,
+            verbose=False
+        )
+        annotated_bgr = bgr_frame.copy()
+        detections = []
+        summary = {"Tái Chế": 0, "Hữu Cơ": 0, "Nguy Hại": 0, "Khác": 0}
+        has_hazard = False
+
+        if len(results) > 0 and len(results[0].boxes) > 0:
+            boxes = results[0].boxes
+            for i in range(len(boxes)):
+                cls_id = int(boxes.cls[i])
+                cls_name = results[0].names[cls_id]
+                conf = float(boxes.conf[i])
+                xyxy = boxes.xyxy[i].cpu().numpy().astype(int)
+                x1, y1, x2, y2 = xyxy
+
+                info = WASTE_CATEGORY_MAP.get(
+                    cls_name,
+                    {"stream": f"Vật thể ({cls_name})", "color": (149, 165, 166), "bin": "Thùng Rác Vô Cơ"}
+                )
+                stream = info["stream"]
+                color_rgb = info["color"]
+                color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])
+
+                if "Nguy Hại" in stream or "E-Waste" in stream:
+                    summary["Nguy Hại"] += 1
+                    has_hazard = True
+                elif "Hữu Cơ" in stream:
+                    summary["Hữu Cơ"] += 1
+                elif "Tái Chế" in stream:
+                    summary["Tái Chế"] += 1
+                else:
+                    summary["Khác"] += 1
+
+                detections.append({
+                    "name": cls_name,
+                    "stream": stream,
+                    "bin": info["bin"],
+                    "confidence": conf,
+                    "box": (x1, y1, x2, y2)
+                })
+
+                cv2.rectangle(annotated_bgr, (x1, y1), (x2, y2), color_bgr, 3)
+                label_text = f"{stream}: {conf*100:.0f}%"
+                (w, h), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                cv2.rectangle(annotated_bgr, (x1, max(0, y1 - 25)), (x1 + w + 10, y1), color_bgr, -1)
+                cv2.putText(annotated_bgr, label_text, (x1 + 5, y1 - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+
+        return annotated_bgr, detections, summary, has_hazard
+
     def detect(self, image, conf_threshold=0.25):
         """
         Nhận diện đa vật thể rác thải và vẽ bounding boxes phân loại màu sắc.

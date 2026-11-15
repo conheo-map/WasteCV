@@ -313,8 +313,45 @@ def main():
 
         img_for_yolo = None
         with col_in:
-            yolo_mode = st.radio("Nguồn Thu Nhận Khung Hình:", ["Chụp từ Webcam Laptop", "Tải file ảnh hiện trường"], horizontal=True, key="yolo_input_mode")
-            if yolo_mode == "Chụp từ Webcam Laptop":
+            yolo_mode = st.radio(
+                "Nguồn Thu Nhận Khung Hình:",
+                ["🎥 Live Stream Tự Động (WebRTC 30 FPS)", "📸 Chụp từ Webcam (Ảnh tĩnh)", "📁 Tải file ảnh hiện trường"],
+                horizontal=False,
+                key="yolo_input_mode"
+            )
+
+            if yolo_mode == "🎥 Live Stream Tự Động (WebRTC 30 FPS)":
+                st.info("👉 Bấm nút **START** bên dưới: Camera sẽ quay liên tục và **TỰ ĐỘNG NHẬN DIỆN MỖI GIÂY** khi bạn giơ đồ vật lên (không cần bấm chụp)!")
+                try:
+                    from streamlit_webrtc import webrtc_streamer, RTCConfiguration
+                    import av
+
+                    class WasteVideoProcessor:
+                        def __init__(self):
+                            self.detector = detector
+                            self.conf = conf_thresh
+
+                        def recv(self, frame):
+                            img_bgr = frame.to_ndarray(format="bgr24")
+                            if self.detector is not None:
+                                annotated_bgr, _, _, _ = self.detector.detect_bgr(img_bgr, conf_threshold=self.conf)
+                            else:
+                                annotated_bgr = img_bgr
+                            return av.VideoFrame.from_ndarray(annotated_bgr, format="bgr24")
+
+                    webrtc_streamer(
+                        key="waste-live-stream-continuous",
+                        video_processor_factory=WasteVideoProcessor,
+                        rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
+                        media_stream_constraints={"video": True, "audio": False}
+                    )
+                except Exception as ex:
+                    st.warning(f"Lỗi khởi động Live Stream WebRTC: {ex}")
+
+                st.markdown("---")
+                st.caption("💡 **Mẹo trình chiếu:** Chạy `py -3.13 src/live_camera.py` trong terminal để mở cửa sổ camera native 60 FPS siêu mượt!")
+
+            elif yolo_mode == "📸 Chụp từ Webcam (Ảnh tĩnh)":
                 cam_pic = st.camera_input("Quét rác trước camera:")
                 if cam_pic:
                     img_for_yolo = Image.open(cam_pic)
@@ -324,7 +361,19 @@ def main():
                     img_for_yolo = Image.open(up_file)
 
         with col_out:
-            if img_for_yolo is None:
+            if yolo_mode == "🎥 Live Stream Tự Động (WebRTC 30 FPS)":
+                st.markdown("#### 🎯 Hướng Dẫn Sử Dụng Live Stream:")
+                st.markdown(
+                    """
+                    1. Bấm **START** ở khung camera bên trái và cấp quyền truy cập Camera.
+                    2. **Giơ bất kỳ vật thể nào trước ống kính:**
+                       - 🍾 **Chai nhựa / Vỏ lon / Cốc nước / Sách báo:** Hệ thống đóng khung **Xanh lá** (Tái chế).
+                       - 🍎 **Quả táo / Chuối / Bánh mì / Đồ ăn:** Hệ thống đóng khung **Cam** (Rác hữu cơ).
+                       - 📱 **Điện thoại / Chuột / Bàn phím / Pin:** Hệ thống đóng khung **Đỏ** và bật **CẢNH BÁO NGUY HẠI**.
+                    3. Bounding box sẽ bám đuổi và theo dõi vật thể theo thời gian thực mà bạn **không cần bấm bất kỳ nút nào**!
+                    """
+                )
+            elif img_for_yolo is None:
                 st.info("👈 Hãy mở Webcam hoặc tải ảnh bên trái để hệ thống YOLOv8 quét và khoanh vùng vật thể.")
             elif detector is None:
                 st.error("Chưa nạp được mô hình YOLOv8! Vui lòng kiểm tra file `models/yolov8n.pt`.")
