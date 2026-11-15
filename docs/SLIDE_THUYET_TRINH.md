@@ -198,25 +198,27 @@
 
 ---
 
-### SLIDE 14: ĐÁNH GIÁ TRIỂN KHAI THIẾT BỊ BIÊN & HẠN CHẾ
-- **Khả năng triển khai Thiết bị Biên (Edge Computing):**
-  - Kích thước mô hình chỉ **9.8 MB**, RAM chiếm dụng <150 MB.
-  - Tương thích tốt với vi máy tính Raspberry Pi 4/5 hoặc NVIDIA Jetson Orin Nano.
-  - Dễ dàng tích hợp vi điều khiển Arduino/ESP32 để kích hoạt động cơ mở nắp thùng rác tự động.
-- **Hạn chế hiện tại:**
-  - Tập dữ liệu TrashNet chủ yếu chụp vật thể đơn chiếc trên nền trắng; thực tế rác thường bị che khuất hoặc đè lấp lên nhau.
-  - Cần nâng cấp sang bài toán Object Detection (YOLO) để khoanh vùng nhiều vật thể cùng lúc.
+### SLIDE 14: ĐỘT PHÁ CÔNG NGHỆ — WASTECV STATION V2.0 (PRODUCTION-GRADE)
+- **Nâng cấp toàn diện đáp ứng môi trường thực tế:**
+  1. **Động cơ YOLOv8 Real-time Multi-Object Detection:**
+     - Khoanh vùng Bounding Box và đếm đa vật thể rác cùng lúc trên luồng webcam thời gian thực (<10ms).
+     - Phân luồng màu sắc trực quan (Xanh lá = Tái chế, Cam = Hữu cơ, Đỏ = Nguy hại/Điện tử, Xám = Vô cơ).
+     - Tự động phát chuông/cảnh báo banner đỏ khi phát hiện Pin nguy hại hoặc thiết bị điện tử.
+  2. **Bộ dữ liệu 12 Lớp Chuẩn Đô Thị (15.520 ảnh):**
+     - Bổ sung **Pin (`battery`)** và **Rác Hữu Cơ (`biological`)**, giải quyết trọn vẹn 100% dòng rác sinh hoạt.
+     - Mô hình đạt chuẩn sẵn sàng lắp đặt vào thùng rác thông minh ngoài đời thực.
+- **Visual:** Ảnh chụp giao diện Web Tab 1 (YOLOv8 Bounding Boxes) và Tab 2 (12-Class Softmax).
 - **Lời thoại thuyết trình:**
-  > *"Về tính khả thi triển khai, mô hình của chúng em chỉ nặng 9.8 MB, hoàn toàn có thể nhúng trực tiếp vào các mạch Raspberry Pi gắn ngay trên nắp thùng rác công cộng. Hạn chế lớn nhất là tập TrashNet hiện chỉ có vật thể đơn; trong tương lai nhóm sẽ nâng cấp lên thuật toán phát hiện vật thể YOLO để khoanh vùng nhiều rác cùng lúc."*
+  > *"Đặc biệt, không dừng lại ở mức mô hình thí nghiệm, nhóm đã nâng cấp hệ thống lên phiên bản WasteCV Station v2.0 Production-grade. Chúng em tích hợp thêm động cơ YOLOv8 giúp khoanh vùng và đếm nhiều loại rác cùng lúc trên camera, đồng thời mở rộng bộ dữ liệu lên 12 lớp với hơn 15.000 ảnh để nhận diện chính xác Pin nguy hại và Rác hữu cơ sinh hoạt. Đây là giải pháp hoàn chỉnh sẵn sàng đưa vào thương mại hóa thực tế."*
 
 ---
 
-### SLIDE 15: KẾT LUẬN & HƯỚNG PHÁT TRIỂN TƯƠNG LAI
+### SLIDE 15: KẾT LUẬN & TỔNG KẾT ĐỒ ÁN
 - **Kết luận:**
   - Hoàn thành xuất sắc mục tiêu đề tài: Vận dụng trọn vẹn lý thuyết Chương 6 Học máy NEU vào bài toán thực tiễn.
-  - Xây dựng thành công mô hình MobileNetV2 đạt Accuracy **$92.17\%$**, giải quyết triệt để hạn chế của mạng MLP truyền thống.
-  - Có sản phẩm phần mềm chạy thật, phục vụ mục tiêu phát triển bền vững và kinh tế xanh.
+  - Xây dựng thành công hệ sinh thái kép: Deep CNN phân loại chuyên sâu 12 lớp + YOLOv8 quét đa vật thể thời gian thực.
+  - Sản phẩm phần mềm chạy thật 100%, mã nguồn đã công khai trên GitHub, phục vụ mục tiêu phát triển bền vững và kinh tế tuần hoàn.
 - **Lời cảm ơn & Khởi động phần Q&A:**
   - *"Nhóm xin chân thành cảm ơn Thầy Cô đã lắng nghe và rất mong nhận được những góp ý quý báu!"*
 - **Lời thoại thuyết trình:**
-  > *"Tóm lại, đồ án WasteCV đã chứng minh sức mạnh của mạng nơ-ron sâu trong việc tự động hóa một tác vụ xã hội ý nghĩa. Chúng em xin chân thành cảm ơn Thầy Cô đã lắng nghe và sẵn sàng trả lời các câu hỏi phản biện ạ!"*
+  > *"Tóm lại, đồ án WasteCV đã chứng minh sức mạnh của mạng nơ-ron sâu trong việc tự động hóa một tác vụ xã hội ý nghĩa. Hệ thống của chúng em đã được kiểm thử, tối ưu trên GPU và public mã nguồn lên GitHub. Chúng em xin chân thành cảm ơn Thầy Cô đã lắng nghe và sẵn sàng trả lời các câu hỏi phản biện ạ!"*

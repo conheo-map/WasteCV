@@ -1,8 +1,10 @@
-# WasteCV — Smart Waste Sorting System
-# Core Tech Stack: PyTorch, Torchvision, Scikit-learn, OpenCV, Streamlit
+# WasteCV Station v2.0 — Production-Grade Waste Sorting & Object Detection
+# Core Tech Stack: PyTorch, Torchvision, Ultralytics YOLOv8, Scikit-learn, OpenCV, Streamlit
 
 torch>=2.4.0
 torchvision>=0.19.0
+ultralytics>=8.2.0
+datasets>=3.0.0
 numpy>=1.24.0
 pandas>=2.0.0
 scikit-learn>=1.4.0

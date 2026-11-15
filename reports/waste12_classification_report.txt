@@ -1,0 +1,22 @@
+WasteCV 12-Class SOTA Deep CNN Model
+Test Accuracy: 96.01%
+Training Time: 10.93 min
+
+              precision    recall  f1-score   support
+
+     battery     0.9530    1.0000    0.9759       142
+  biological     0.9359    0.9865    0.9605       148
+ brown-glass     0.9888    0.9565    0.9724        92
+   cardboard     0.9231    0.9851    0.9531       134
+     clothes     0.9987    0.9775    0.9880       799
+ green-glass     0.9688    0.9789    0.9738        95
+       metal     0.9237    0.9397    0.9316       116
+       paper     0.9605    0.9241    0.9419       158
+     plastic     0.9008    0.8385    0.8685       130
+       shoes     0.9477    0.9764    0.9619       297
+       trash     0.9196    0.9810    0.9493       105
+ white-glass     0.9266    0.8632    0.8938       117
+
+    accuracy                         0.9601      2333
+   macro avg     0.9456    0.9506    0.9476      2333
+weighted avg     0.9606    0.9601    0.9599      2333
