@@ -6,14 +6,23 @@ Tích hợp 2 động cơ AI tiên tiến nhất:
 """
 
 import os
+import sys
+from pathlib import Path
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+SRC_DIR = Path(__file__).resolve().parent
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 import time
 import joblib
 import numpy as np
 import streamlit as st
 from PIL import Image
-from pathlib import Path
 import pandas as pd
 
 # Cấu hình trang giao diện
@@ -137,9 +146,18 @@ def load_all_engines():
     if yolo_path.exists():
         try:
             from src.detector import WasteDetector
-            engines["detector"] = WasteDetector(yolo_path)
-        except Exception as e:
-            st.sidebar.warning(f"Chưa khởi động YOLOv8: {e}")
+        except ImportError:
+            try:
+                from detector import WasteDetector
+            except Exception as e:
+                st.sidebar.warning(f"Chưa khởi động YOLOv8: {e}")
+                WasteDetector = None
+
+        if WasteDetector is not None:
+            try:
+                engines["detector"] = WasteDetector(yolo_path)
+            except Exception as e:
+                st.sidebar.warning(f"Lỗi nạp trọng số YOLOv8: {e}")
 
     # 2. Nạp Mô hình 12 Lớp SOTA
     cnn12_path = MODELS_DIR / "best_waste12_cnn.pt"
