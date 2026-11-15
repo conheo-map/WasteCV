@@ -325,39 +325,61 @@ def main():
                 try:
                     from streamlit_webrtc import webrtc_streamer, RTCConfiguration
                     import av
+                    import queue
+                    import threading
 
-                    class WasteVideoProcessor:
+                    class AsyncWasteVideoProcessor:
                         def __init__(self):
                             self.detector = detector
                             self.conf = conf_thresh
-                            self.frame_count = 0
-                            self.cached_detections = []
+                            self.q = queue.Queue(maxsize=1)
+                            self.lock = threading.Lock()
+                            self.latest_boxes = []
+                            self.running = True
+                            self.worker = threading.Thread(target=self._worker, daemon=True)
+                            self.worker.start()
+
+                        def _worker(self):
+                            while self.running:
+                                try:
+                                    frame_data = self.q.get(timeout=0.1)
+                                except queue.Empty:
+                                    continue
+                                if self.detector is not None:
+                                    boxes, _ = self.detector.get_boxes(frame_data, conf_threshold=self.conf, imgsz=256)
+                                    with self.lock:
+                                        self.latest_boxes = boxes
 
                         def recv(self, frame):
                             img_bgr = frame.to_ndarray(format="bgr24")
-                            self.frame_count += 1
 
-                            if self.detector is not None:
-                                # Chạy suy luận YOLO mỗi 2 frame để đạt 30-60 FPS mượt mà
-                                if self.frame_count % 2 == 0 or len(self.cached_detections) == 0:
-                                    self.cached_detections, _ = self.detector.get_boxes(
-                                        img_bgr, conf_threshold=self.conf, imgsz=320
-                                    )
-                                annotated_bgr = self.detector.draw_boxes(img_bgr, self.cached_detections)
+                            # Đẩy frame vào queue xử lý bất đồng bộ nếu queue rỗng (Non-blocking)
+                            if self.q.empty():
+                                try:
+                                    self.q.put_nowait(img_bgr)
+                                except queue.Full:
+                                    pass
+
+                            # Vẽ boxes mới nhất ngay lập tức (mất < 0.5ms, tuyệt đối không nghẽn video)
+                            with self.lock:
+                                current_boxes = list(self.latest_boxes)
+
+                            if self.detector is not None and current_boxes:
+                                annotated_bgr = self.detector.draw_boxes(img_bgr, current_boxes)
                             else:
                                 annotated_bgr = img_bgr
 
                             return av.VideoFrame.from_ndarray(annotated_bgr, format="bgr24")
 
                     webrtc_streamer(
-                        key="waste-live-stream-continuous",
-                        video_processor_factory=WasteVideoProcessor,
+                        key="waste-live-stream-continuous-v3",
+                        video_processor_factory=AsyncWasteVideoProcessor,
                         rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
                         media_stream_constraints={
                             "video": {
-                                "width": {"ideal": 640},
-                                "height": {"ideal": 480},
-                                "frameRate": {"ideal": 30}
+                                "width": {"ideal": 480, "max": 640},
+                                "height": {"ideal": 360, "max": 480},
+                                "frameRate": {"ideal": 30, "max": 30}
                             },
                             "audio": False
                         }
@@ -366,7 +388,12 @@ def main():
                     st.warning(f"Lỗi khởi động Live Stream WebRTC: {ex}")
 
                 st.markdown("---")
-                st.caption("💡 **Mẹo trình chiếu:** Chạy `py -3.13 src/live_camera.py` trong terminal để mở cửa sổ camera native 60 FPS siêu mượt!")
+                col_btn, _ = st.columns([1, 1])
+                with col_btn:
+                    if st.button("🚀 BẬT CỬA SỔ CAMERA NATIVE 60 FPS (Không Giật Lag)", type="primary"):
+                        import subprocess
+                        subprocess.Popen([sys.executable, str(BASE_DIR / "src" / "live_camera.py")])
+                        st.success("✅ Đã mở cửa sổ Camera Native 60 FPS trực tiếp trên màn hình! Nhấn phím 'q' trên cửa sổ camera để tắt.")
 
             elif yolo_mode == "📸 Chụp từ Webcam (Ảnh tĩnh)":
                 cam_pic = st.camera_input("Quét rác trước camera:")
