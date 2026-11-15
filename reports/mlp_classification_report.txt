@@ -1,0 +1,16 @@
+MLP Baseline Model Evaluation
+Độ chính xác (Accuracy): 46.74%
+Thời gian huấn luyện: 28.70s
+
+              precision    recall  f1-score   support
+
+   cardboard     0.8649    0.5246    0.6531        61
+       glass     0.4898    0.3158    0.3840        76
+       metal     1.0000    0.0161    0.0317        62
+       paper     0.4171    0.8111    0.5509        90
+     plastic     0.3909    0.5890    0.4699        73
+       trash     0.5455    0.2857    0.3750        21
+
+    accuracy                         0.4674       383
+   macro avg     0.6180    0.4237    0.4108       383
+weighted avg     0.5993    0.4674    0.4249       383

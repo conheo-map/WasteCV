@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches & Logs
+.pytest_cache/
+*.log
+
+# Datasets (Tự động tải qua python src/prepare_data.py)
+data/raw/*
+!data/raw/.gitkeep
+data/train/
+data/val/
+data/test/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
