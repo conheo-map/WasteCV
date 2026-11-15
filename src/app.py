@@ -141,23 +141,18 @@ def load_all_engines():
     """Nạp tất cả các động cơ AI (YOLOv8 Detector + Deep CNN Classifiers)."""
     engines = {"classifiers": {}, "detector": None}
 
-    # 1. Nạp YOLOv8 Waste Detector
-    yolo_path = MODELS_DIR / "yolov8n.pt"
+    # 1. Nạp YOLOv8 Waste Detector (Ưu tiên mô hình 12 lớp rác thải SOTA)
+    yolo_12_path = MODELS_DIR / "yolov8n_waste12.pt"
+    yolo_path = yolo_12_path if yolo_12_path.exists() else (MODELS_DIR / "yolov8n.pt")
     if yolo_path.exists():
         try:
-            from src.detector import WasteDetector
-        except ImportError:
             try:
                 from detector import WasteDetector
-            except Exception as e:
-                st.sidebar.warning(f"Chưa khởi động YOLOv8: {e}")
-                WasteDetector = None
-
-        if WasteDetector is not None:
-            try:
-                engines["detector"] = WasteDetector(yolo_path)
-            except Exception as e:
-                st.sidebar.warning(f"Lỗi nạp trọng số YOLOv8: {e}")
+            except ImportError:
+                from src.detector import WasteDetector
+            engines["detector"] = WasteDetector(yolo_path)
+        except Exception as e:
+            st.sidebar.warning(f"Lỗi khởi động YOLOv8: {e}")
 
     # 2. Nạp Mô hình 12 Lớp SOTA
     cnn12_path = MODELS_DIR / "best_waste12_cnn.pt"

@@ -23,7 +23,9 @@ import threading
 import torch
 from src.detector import WasteDetector
 
-MODEL_PATH = BASE_DIR / "models" / "yolov8n.pt"
+MODEL_PATH = BASE_DIR / "models" / "yolov8n_waste12.pt"
+if not MODEL_PATH.exists():
+    MODEL_PATH = BASE_DIR / "models" / "yolov8n.pt"
 
 
 def run_live():
